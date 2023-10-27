@@ -1,23 +1,12 @@
 import sys
 
 sys.path.append("./python")
-from ast import parse
-import jittor as jt
-from tqdm import tqdm
+
 import argparse
-import numpy as np
-import os
-from jnerf.runner import Runner, NeuSRunner
-from jnerf.utils.config import init_cfg, get_cfg
-from jnerf.utils.registry import (
-    build_from_cfg,
-    NETWORKS,
-    SCHEDULERS,
-    DATASETS,
-    OPTIMS,
-    SAMPLERS,
-    LOSSES,
-)
+
+import jittor as jt
+from jnerf.runner import NeuSRunner, Runner
+from jnerf.utils.config import init_cfg
 
 # jt.flags.gopt_disable=1
 jt.flags.use_cuda = 1
