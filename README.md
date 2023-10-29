@@ -17,7 +17,7 @@ ca jn
 ## Run
 
 ```bash
-./run.sh
+python demo.py
 ```
 
 ## Enjoy it~

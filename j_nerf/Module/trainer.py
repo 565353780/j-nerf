@@ -3,9 +3,6 @@ import os
 import cv2
 import jittor as jt
 import numpy as np
-from PIL import Image
-from tqdm import tqdm
-
 from j_nerf.Config.registry import (
     DATASETS,
     LOSSES,
@@ -13,25 +10,25 @@ from j_nerf.Config.registry import (
     OPTIMS,
     SAMPLERS,
 )
-
 from j_nerf.Dataset.nerf import NerfDataset
+from j_nerf.Loss.huber import HuberLoss
+from j_nerf.Loss.mse import img2mse, mse2psnr
+from j_nerf.Method.camera_path import path_spherical
+from j_nerf.Method.config import get_cfg
+from j_nerf.Method.registry import build_from_cfg
 from j_nerf.Model.freq_encoder import FrequencyEncoder
 from j_nerf.Model.hash_encoder import HashEncoder
-from j_nerf.Model.sh_encoder import SHEncoder
 from j_nerf.Model.ngp import NGPNetworks
-from j_nerf.Sampler.density_grid_sampler import DensityGridSampler
+from j_nerf.Model.sh_encoder import SHEncoder
 from j_nerf.Optim.adam import Adam
 from j_nerf.Optim.ema import EMA
 from j_nerf.Optim.expdecay import ExpDecay
-
-from j_nerf.Method.registry import build_from_cfg
-from j_nerf.Loss.mse import img2mse, mse2psnr
-from j_nerf.Loss.huber import HuberLoss
-from j_nerf.Method.camera_path import path_spherical
-from j_nerf.Method.config import get_cfg
+from j_nerf.Sampler.density_grid_sampler import DensityGridSampler
+from PIL import Image
+from tqdm import tqdm
 
 
-class Runner:
+class Trainer:
     def __init__(self):
         self.cfg = get_cfg()
         if self.cfg.fp16 and jt.flags.cuda_archs[0] < 70:

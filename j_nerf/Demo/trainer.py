@@ -1,11 +1,7 @@
-import sys
-
-sys.path.append("./python")
-
 import argparse
 
 import jittor as jt
-from jnerf.runner.runner import Runner
+from j_nerf.Module.trainer import Trainer
 
 from j_nerf.Method.config import init_cfg
 
@@ -13,21 +9,25 @@ from j_nerf.Method.config import init_cfg
 jt.flags.use_cuda = 1
 
 
-def main():
+def demo():
+    config_file = '../j-nerf/j_nerf/Config/ngp_fox.py'
+    task = 'train'
+    assert task in ['train', 'test', 'render']
+
     assert (
         jt.flags.cuda_archs[0] >= 61
     ), "Failed: Sm arch version is too low! Sm arch version must not be lower than sm_61!"
     parser = argparse.ArgumentParser(description="Jittor Object Detection Training")
     parser.add_argument(
         "--config-file",
-        default="",
+        default=config_file,
         metavar="FILE",
         help="path to config file",
         type=str,
     )
     parser.add_argument(
         "--task",
-        default="train",
+        default=task,
         help="train,val,test",
         type=str,
     )
@@ -68,19 +68,16 @@ def main():
         init_cfg(args.config_file)
 
     if args.type == "novel_view":
-        runner = Runner()
+        trainer = Trainer()
 
     if args.task == "train":
-        runner.train()
+        trainer.train()
     elif args.task == "test":
-        runner.test(True)
+        trainer.test(True)
     elif args.task == "render":
-        runner.render(True, args.save_dir)
+        trainer.render(True, args.save_dir)
     elif args.task == "validate_mesh":
-        runner.validate_mesh(
+        trainer.validate_mesh(
             world_space=False, resolution=512, threshold=args.mcube_threshold
         )
-
-
-if __name__ == "__main__":
-    main()
+    return True
