@@ -1,23 +1,34 @@
 import os
+
+import cv2
 import jittor as jt
-from PIL import Image
 import numpy as np
+from PIL import Image
 from tqdm import tqdm
-from jnerf.ops.code_ops import *
-from jnerf.dataset.dataset import jt_srgb_to_linear, jt_linear_to_srgb
-from jnerf.utils.config import get_cfg, save_cfg
-from jnerf.utils.registry import (
-    build_from_cfg,
-    NETWORKS,
-    SCHEDULERS,
+
+from j_nerf.Config.registry import (
     DATASETS,
+    LOSSES,
+    NETWORKS,
     OPTIMS,
     SAMPLERS,
-    LOSSES,
 )
-from jnerf.models.losses.mse_loss import img2mse, mse2psnr
-from jnerf.dataset import camera_path
-import cv2
+
+from j_nerf.Dataset.nerf import NerfDataset
+from j_nerf.Model.freq_encoder import FrequencyEncoder
+from j_nerf.Model.hash_encoder import HashEncoder
+from j_nerf.Model.sh_encoder import SHEncoder
+from j_nerf.Model.ngp import NGPNetworks
+from j_nerf.Sampler.density_grid_sampler import DensityGridSampler
+from j_nerf.Optim.adam import Adam
+from j_nerf.Optim.ema import EMA
+from j_nerf.Optim.expdecay import ExpDecay
+
+from j_nerf.Method.registry import build_from_cfg
+from j_nerf.Loss.mse import img2mse, mse2psnr
+from j_nerf.Loss.huber import HuberLoss
+from j_nerf.Method.camera_path import path_spherical
+from j_nerf.Method.config import get_cfg
 
 
 class Runner:
@@ -139,7 +150,7 @@ class Runner:
         W, H = self.image_resolutions
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         videowriter = cv2.VideoWriter(save_path, fourcc, fps, (W, H))
-        cam_path = camera_path.path_spherical()
+        cam_path = path_spherical()
         with jt.no_grad():
             for pose in tqdm(cam_path):
                 img = self.render_img_with_pose(pose)
