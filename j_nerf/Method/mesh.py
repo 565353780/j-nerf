@@ -5,15 +5,19 @@ import mcubes
 import os
 import argparse
 from plyfile import PlyData, PlyElement
-from jnerf.runner import Runner
-from jnerf.utils.config import init_cfg
-import time
+from j_nerf.Module.trainer import Trainer
+from j_nerf.Method.config import init_cfg
 from tqdm import tqdm
-def mesh():
+
+def extract_mesh():
+    config_file = '../j-nerf/j_nerf/Config/ngp_fox.py'
+    resolution = 512
+    mcube_smooth = False
+
     parser = argparse.ArgumentParser(description="Jittor Object Detection Training")
     parser.add_argument(
         "--config-file",
-        default="",
+        default=config_file,
         metavar="FILE",
         help="path to config file",
         type=str,
@@ -21,23 +25,23 @@ def mesh():
     parser.add_argument(
         "--resolution",
         type=int,
-        default=512,
+        default=resolution,
         help="resolution of space division"
     )
     parser.add_argument(
         "--mcube_smooth",
         type=bool,
-        default=False,
+        default=mcube_smooth,
         help="use pymcube.smooth function"
     )
     args = parser.parse_args()
     print(args)
     if args.config_file:
         init_cfg(args.config_file)
-    runner = Runner()
-    runner.load_ckpt(runner.ckpt_path)
-    mesh_dir = runner.save_path
-    aabb_scale = runner.dataset["train"].aabb_scale
+    trainer = Trainer()
+    trainer.load_ckpt(trainer.ckpt_path)
+    mesh_dir = trainer.save_path
+    aabb_scale = trainer.dataset["train"].aabb_scale
     N = args.resolution
     xmin, xmax = 0, 1
     ymin, ymax = 0, 1
@@ -59,10 +63,10 @@ def mesh():
         with jt.no_grad():
             B = xyz_.shape[0]
             out_chunks = []
-            for i in range(0, B, runner.n_rays_per_batch*128):
-                pos=xyz_[i:i + runner.n_rays_per_batch*128]
-                dir=dir_[i:i + runner.n_rays_per_batch*128]
-                out_chunks += [runner.model(pos, dir)[:,-1]]
+            for i in range(0, B, trainer.n_rays_per_batch*128):
+                pos=xyz_[i:i + trainer.n_rays_per_batch*128]
+                dir=dir_[i:i + trainer.n_rays_per_batch*128]
+                out_chunks += [trainer.model(pos, dir)[:,-1]]
             jt.sync_all(True)
             out_chunks = jt.concat(out_chunks,0)
             sigma0 = jt.maximum(out_chunks,0).int()
@@ -120,27 +124,27 @@ def mesh():
     vertices_ = jt.array(vertices_)
     rays_o_total = vertices_ - dir_ * 0.2
     rays_o_total = (rays_o_total-0.5)*aabb_scale+0.5
-    W, H = runner.image_resolutions
+    W, H = trainer.image_resolutions
     W = int(W)
     H = int(H)
     fake_img_ids = jt.zeros([H*W], 'int32')
     N_vertices = len(vertices_)
     img = []
     alpha = []
-    for start in tqdm(range(0, N_vertices, runner.n_rays_per_batch)):
+    for start in tqdm(range(0, N_vertices, trainer.n_rays_per_batch)):
         with jt.no_grad():
-            end = start + runner.n_rays_per_batch
+            end = start + trainer.n_rays_per_batch
             rays_o = rays_o_total[start:end]
             rays_d = dir_[start:end]
-            pos, dir = runner.sampler.sample(fake_img_ids, rays_o, rays_d)
-            network_outputs = runner.model(pos, dir)
-            rgb, a = runner.sampler.rays2rgb(network_outputs, inference=True)
+            pos, dir = trainer.sampler.sample(fake_img_ids, rays_o, rays_d)
+            network_outputs = trainer.model(pos, dir)
+            rgb, a = trainer.sampler.rays2rgb(network_outputs, inference=True)
             img += [rgb.numpy()]
             alpha += [a.numpy()]
             jt.gc()
     img = np.concatenate(img, 0)
     alpha = np.concatenate(alpha, 0)
-    img = img + np.array(runner.background_color)*(1 - alpha)
+    img = img + np.array(trainer.background_color)*(1 - alpha)
     img = (img*255+0.5).clip(0, 255).astype('uint8')
     img.dtype = [('red', 'u1'), ('green', 'u1'), ('blue', 'u1')]
     vertices_ = np.asarray(vertices_)
@@ -155,7 +159,3 @@ def mesh():
     PlyData([PlyElement.describe(vertex_all, 'vertex'),
              PlyElement.describe(face, 'face')]).write(os.path.join(mesh_dir, f'{"mesh-color"}.ply'))
     print("mesh color generated mesh-color.ply")
-
-
-if __name__ == "__main__":
-    mesh()
