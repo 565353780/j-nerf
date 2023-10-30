@@ -1,11 +1,5 @@
-import jittor as jt
-from j_nerf.Module.trainer import Trainer
-
 from j_nerf.Method.config import init_cfg
-
-# jt.flags.gopt_disable=1
-jt.flags.use_cuda = 1
-
+from j_nerf.Module.trainer import Trainer
 
 def demo():
     config_file = '../j-nerf/j_nerf/Config/ngp_fox.py'

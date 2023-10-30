@@ -3,13 +3,17 @@ import os
 import cv2
 import jittor as jt
 import numpy as np
+from open3d import data
 from j_nerf.Config.registry import (
-    DATASETS,
     LOSSES,
     NETWORKS,
     OPTIMS,
     SAMPLERS,
 )
+
+# jt.flags.gopt_disable=1
+jt.flags.use_cuda = 1
+
 from j_nerf.Dataset.nerf import NerfDataset
 from j_nerf.Loss.huber import HuberLoss
 from j_nerf.Loss.mse import img2mse, mse2psnr
@@ -39,14 +43,9 @@ class Trainer:
         if not os.path.exists(self.cfg.log_dir):
             os.makedirs(self.cfg.log_dir)
         self.exp_name = self.cfg.exp_name
-        self.dataset = {}
-        self.dataset["train"] = build_from_cfg(self.cfg.dataset.train, DATASETS)
-        self.cfg.dataset_obj = self.dataset["train"]
-        if self.cfg.dataset.val:
-            self.dataset["val"] = build_from_cfg(self.cfg.dataset.val, DATASETS)
-        else:
-            self.dataset["val"] = self.dataset["train"]
-        self.dataset["test"] = None
+        self.train_dataset = NerfDataset('./data/fox', 4096, 'train')
+        self.test_dataset = NerfDataset('./data/fox', 4096, 'test', preload_shuffle=False)
+        self.cfg.dataset_obj = self.train_dataset
         self.model = build_from_cfg(self.cfg.model, NETWORKS)
         self.cfg.model_obj = self.model
         self.sampler = build_from_cfg(self.cfg.sampler, SAMPLERS)
@@ -80,14 +79,14 @@ class Trainer:
 
         self.cfg.m_training_step = 0
         self.val_freq = 1000
-        self.image_resolutions = self.dataset["train"].resolution
+        self.image_resolutions = self.train_dataset.resolution
         self.W = self.image_resolutions[0]
         self.H = self.image_resolutions[1]
 
     def train(self):
         for i in tqdm(range(self.start, self.tot_train_steps)):
             self.cfg.m_training_step = i
-            img_ids, rays_o, rays_d, rgb_target = next(self.dataset["train"])
+            img_ids, rays_o, rays_d, rgb_target = next(self.train_dataset)
             training_background_color = jt.random([rgb_target.shape[0], 3]).stop_grad()
 
             rgb_target = (
@@ -121,12 +120,10 @@ class Trainer:
                 "ckpt file does not exist: " + self.ckpt_path
             )
             self.load_ckpt(self.ckpt_path)
-        if self.dataset["test"] is None:
-            self.dataset["test"] = build_from_cfg(self.cfg.dataset.test, DATASETS)
         if not os.path.exists(os.path.join(self.save_path, "test")):
             os.makedirs(os.path.join(self.save_path, "test"))
         mse_list = self.render_test(save_path=os.path.join(self.save_path, "test"))
-        if self.dataset["test"].have_img:
+        if self.test_dataset.have_img:
             tot_psnr = 0
             for mse in mse_list:
                 tot_psnr += mse2psnr(mse)
@@ -201,7 +198,7 @@ class Trainer:
             save_path = self.save_path
         mse_list = []
         print("rendering testset...")
-        for img_i in tqdm(range(0, self.dataset["test"].n_images, 1)):
+        for img_i in tqdm(range(0, self.test_dataset.n_images, 1)):
             with jt.no_grad():
                 imgs = []
                 alphas = []
@@ -218,7 +215,7 @@ class Trainer:
                     self.save_img(
                         save_path + f"/{self.exp_name}_r_{img_i}.png", img, alpha
                     )
-                    if self.dataset["test"].have_img:
+                    if self.test_dataset.have_img:
                         self.save_img(
                             save_path + f"/{self.exp_name}_gt_{img_i}.png", img_tar
                         )
@@ -236,17 +233,20 @@ class Trainer:
         im.save(path)
 
     def render_img(self, dataset_mode="train", img_id=None):
+        if dataset_mode == 'train':
+            dataset = self.train_dataset
+        else:
+            dataset = self.test_dataset
+
         W, H = self.image_resolutions
         H = int(H)
         W = int(W)
         if img_id is None:
-            img_id = np.random.randint(0, self.dataset[dataset_mode].n_images, [1])[0]
+            img_id = np.random.randint(0, dataset.n_images, [1])[0]
             img_ids = jt.zeros([H * W], "int32") + img_id
         else:
             img_ids = jt.zeros([H * W], "int32") + img_id
-        rays_o_total, rays_d_total, rays_pix_total = self.dataset[
-            dataset_mode
-        ].generate_rays_total_test(img_ids, W, H)
+        rays_o_total, rays_d_total, rays_pix_total = dataset.generate_rays_total_test(img_ids, W, H)
         rays_pix_total = rays_pix_total.unsqueeze(-1)
         pixel = 0
         imgs = np.empty([H * W + self.n_rays_per_batch, 3])
@@ -272,7 +272,7 @@ class Trainer:
             alphas[pixel:end] = alpha.numpy()
         imgs = imgs[: H * W].reshape(H, W, 3)
         alphas = alphas[: H * W].reshape(H, W, 1)
-        imgs_tar = jt.array(self.dataset[dataset_mode].image_data[img_id]).reshape(
+        imgs_tar = jt.array(dataset.image_data[img_id]).reshape(
             H, W, 4
         )
         imgs_tar = imgs_tar[..., :3] * imgs_tar[..., 3:] + jt.array(
@@ -290,7 +290,7 @@ class Trainer:
         H = int(H)
         W = int(W)
         fake_img_ids = jt.zeros([H * W], "int32")
-        rays_o_total, rays_d_total = self.dataset["train"].generate_rays_with_pose(
+        rays_o_total, rays_d_total = self.train_dataset.generate_rays_with_pose(
             pose, W, H
         )
         img = np.empty([H * W + self.n_rays_per_batch, 3])

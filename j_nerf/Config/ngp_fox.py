@@ -35,23 +35,6 @@ expdecay = dict(
     decay_base=0.33,
     decay_end=None,
 )
-dataset_type = "NerfDataset"
-dataset_dir = "data/fox"
-dataset = dict(
-    train=dict(
-        type=dataset_type,
-        root_dir=dataset_dir,
-        batch_size=4096,
-        mode="train",
-    ),
-    test=dict(
-        type=dataset_type,
-        root_dir=dataset_dir,
-        batch_size=4096,
-        mode="test",
-        preload_shuffle=False,
-    ),
-)
 
 exp_name = "fox"
 log_dir = "./logs"
