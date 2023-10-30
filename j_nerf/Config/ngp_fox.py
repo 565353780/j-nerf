@@ -1,12 +1,3 @@
-encoder = dict(
-    pos_encoder=dict(
-        type="HashEncoder",
-    ),
-    dir_encoder=dict(
-        type="SHEncoder",
-    ),
-)
-
 exp_name = "fox"
 log_dir = "./logs"
 tot_train_steps = 40000

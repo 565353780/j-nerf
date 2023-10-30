@@ -13,9 +13,7 @@ from j_nerf.Loss.mse import img2mse, mse2psnr
 from j_nerf.Method.camera_path import path_spherical
 from j_nerf.Method.config import get_cfg
 from j_nerf.Model.freq_encoder import FrequencyEncoder
-from j_nerf.Model.hash_encoder import HashEncoder
 from j_nerf.Model.ngp import NGPNetworks
-from j_nerf.Model.sh_encoder import SHEncoder
 from j_nerf.Optim.adam import Adam
 from j_nerf.Optim.ema import EMA
 from j_nerf.Optim.expdecay import ExpDecay
