@@ -3,13 +3,6 @@ import os
 import cv2
 import jittor as jt
 import numpy as np
-from open3d import data
-from j_nerf.Config.registry import (
-    LOSSES,
-    NETWORKS,
-    OPTIMS,
-    SAMPLERS,
-)
 
 # jt.flags.gopt_disable=1
 jt.flags.use_cuda = 1
@@ -19,7 +12,6 @@ from j_nerf.Loss.huber import HuberLoss
 from j_nerf.Loss.mse import img2mse, mse2psnr
 from j_nerf.Method.camera_path import path_spherical
 from j_nerf.Method.config import get_cfg
-from j_nerf.Method.registry import build_from_cfg
 from j_nerf.Model.freq_encoder import FrequencyEncoder
 from j_nerf.Model.hash_encoder import HashEncoder
 from j_nerf.Model.ngp import NGPNetworks
@@ -35,31 +27,29 @@ from tqdm import tqdm
 class Trainer:
     def __init__(self):
         self.cfg = get_cfg()
-        if self.cfg.fp16 and jt.flags.cuda_archs[0] < 70:
-            print(
-                "Warning: Sm arch is lower than sm_70, fp16 is not supported. Automatically use fp32 instead."
-            )
-            self.cfg.fp16 = False
+
         if not os.path.exists(self.cfg.log_dir):
             os.makedirs(self.cfg.log_dir)
+
         self.exp_name = self.cfg.exp_name
+
         self.train_dataset = NerfDataset('./data/fox', 4096, 'train')
         self.test_dataset = NerfDataset('./data/fox', 4096, 'test', preload_shuffle=False)
         self.cfg.dataset_obj = self.train_dataset
-        self.model = build_from_cfg(self.cfg.model, NETWORKS)
+
+        self.model = NGPNetworks()
         self.cfg.model_obj = self.model
-        self.sampler = build_from_cfg(self.cfg.sampler, SAMPLERS)
+
+        self.sampler = DensityGridSampler()
         self.cfg.sampler_obj = self.sampler
-        self.optimizer = build_from_cfg(
-            self.cfg.optim, OPTIMS, params=self.model.parameters()
-        )
-        self.optimizer = build_from_cfg(
-            self.cfg.expdecay, OPTIMS, nested_optimizer=self.optimizer
-        )
-        self.ema_optimizer = build_from_cfg(
-            self.cfg.ema, OPTIMS, params=self.model.parameters()
-        )
-        self.loss_func = build_from_cfg(self.cfg.loss, LOSSES)
+
+        self.optimizer = Adam(lr=1e-1, eps=1e-15, betas=(0.9, 0.99), params=self.model.parameters())
+        self.optimizer = ExpDecay(self.optimizer, 20000, 10000, 0.33)
+
+        self.ema_optimizer = EMA(self.model.parameters(), 0.95)
+
+        self.loss_func = HuberLoss(0.1)
+
         self.background_color = self.cfg.background_color
         self.tot_train_steps = self.cfg.tot_train_steps
         self.n_rays_per_batch = self.cfg.n_rays_per_batch

@@ -1,7 +1,3 @@
-sampler = dict(
-    type="DensityGridSampler",
-    update_den_freq=16,
-)
 encoder = dict(
     pos_encoder=dict(
         type="HashEncoder",
@@ -9,31 +5,6 @@ encoder = dict(
     dir_encoder=dict(
         type="SHEncoder",
     ),
-)
-model = dict(
-    type="NGPNetworks",
-    use_fully=True,
-)
-loss = dict(
-    type="HuberLoss",
-    delta=0.1,
-)
-optim = dict(
-    type="Adam",
-    lr=1e-1,
-    eps=1e-15,
-    betas=(0.9, 0.99),
-)
-ema = dict(
-    type="EMA",
-    decay=0.95,
-)
-expdecay = dict(
-    type="ExpDecay",
-    decay_start=20_000,
-    decay_interval=10_000,
-    decay_base=0.33,
-    decay_end=None,
 )
 
 exp_name = "fox"
