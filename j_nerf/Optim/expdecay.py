@@ -1,8 +1,6 @@
 import jittor as jt
-from j_nerf.Config.registry import OPTIMS
 
 
-@OPTIMS.register_module()
 class ExpDecay(jt.nn.Optimizer):
     def __init__(
         self,

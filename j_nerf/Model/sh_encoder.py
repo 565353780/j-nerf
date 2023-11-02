@@ -1,13 +1,9 @@
-import os
-
 import jittor as jt
-from j_nerf.Config.registry import ENCODERS
 from j_nerf.Method.config import get_cfg
 from j_nerf.Method.global_vars import proj_options
 from jittor import Function
 
 
-@ENCODERS.register_module()
 class SHEncoder(Function):
     def __init__(self):
         self.cfg = get_cfg()

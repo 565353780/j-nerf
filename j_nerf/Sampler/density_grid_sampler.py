@@ -1,7 +1,6 @@
 from math import ceil, log2
 
 import jittor as jt
-from j_nerf.Config.registry import SAMPLERS
 from j_nerf.Method.config import get_cfg
 from j_nerf.Method.global_vars import proj_options
 from jittor import nn
@@ -18,7 +17,6 @@ from .splat_grid_samples_nerf_max_nearest_neighbor import (
 from .update_bitfield import update_bitfield
 
 
-@SAMPLERS.register_module()
 class DensityGridSampler(nn.Module):
     def __init__(self, update_den_freq=16, update_block_size=5000000):
         super(DensityGridSampler, self).__init__()

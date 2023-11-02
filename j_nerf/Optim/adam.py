@@ -1,10 +1,8 @@
 import copy
 
 import jittor as jt
-from j_nerf.Config.registry import OPTIMS
 
 
-@OPTIMS.register_module()
 class Adam(jt.nn.Adam):
     def __init__(self, params, **kwargs):
         super(Adam, self).__init__(params, **kwargs)

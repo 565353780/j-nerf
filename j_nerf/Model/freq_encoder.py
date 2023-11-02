@@ -1,10 +1,8 @@
 import jittor as jt
 import jittor.nn as nn
-from j_nerf.Config.registry import ENCODERS
 from j_nerf.Method.config import get_cfg
 
 
-@ENCODERS.register_module()
 class FrequencyEncoder(nn.Module):
     def __init__(
         self,

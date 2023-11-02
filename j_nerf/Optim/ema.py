@@ -1,10 +1,8 @@
 import copy
 
 import jittor as jt
-from j_nerf.Config.registry import OPTIMS
 
 
-@OPTIMS.register_module()
 class EMA(jt.nn.Optimizer):
     def __init__(self, params, decay):
         super().__init__(params, lr=0)

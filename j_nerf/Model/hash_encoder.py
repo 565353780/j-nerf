@@ -1,12 +1,10 @@
 import jittor as jt
-from j_nerf.Config.registry import ENCODERS
 from j_nerf.Method.config import get_cfg
 from j_nerf.Model.grid_encode import GridEncode
 from j_nerf.Method.global_vars import proj_options
 from jittor import nn
 
 
-@ENCODERS.register_module()
 class HashEncoder(nn.Module):
     def __init__(
         self,

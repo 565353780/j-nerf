@@ -2,8 +2,6 @@ import numpy as np
 import jittor as jt
 from jittor import nn
 
-from j_nerf.Config.registry import LOSSES
-
 
 def img2mse(x, y):
     return jt.mean((x - y) ** 2)
@@ -13,7 +11,6 @@ def mse2psnr(x):
     return -10.0 * jt.log(x) / jt.log(jt.array(np.array([10.0])))
 
 
-@LOSSES.register_module()
 class MSELoss(nn.Module):
     def __init__(self):
         pass

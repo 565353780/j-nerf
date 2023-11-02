@@ -6,7 +6,6 @@ import jittor as jt
 import numpy as np
 from tqdm import tqdm
 
-from j_nerf.Config.registry import DATASETS
 from j_nerf.Method.dataset_util import (
     NERF_SCALE,
     fov_to_focal_length,
@@ -14,7 +13,6 @@ from j_nerf.Method.dataset_util import (
 )
 
 
-@DATASETS.register_module()
 class NerfDataset:
     def __init__(
         self,
