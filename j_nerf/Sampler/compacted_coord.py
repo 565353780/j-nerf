@@ -12,7 +12,6 @@ class CompactedCoord(Function):
         aabb_range=(-1.5, 2.5),
         n_rays_per_batch=4096,
         n_rays_step=1024,
-        using_fp16=False,
         compacted_elements=None,
     ):
         self.density_grad_header = density_grad_header
@@ -28,9 +27,7 @@ class CompactedCoord(Function):
         ##activation 0:None 1:relu 2:sigmoid 3:exp
         self.rgb_activation = 2
         self.density_activation = 3
-        self.grad_type = "float32"
-        if using_fp16:
-            self.grad_type = "float16"
+        self.grad_type = "float16"
 
     def execute(self, network_output, coords_in, rays_numsteps):
         # input

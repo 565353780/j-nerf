@@ -10,54 +10,25 @@ from j_nerf.Model.sh_encoder import SHEncoder
 class NGPNetworks(nn.Module):
     def __init__(
         self,
-        use_fully=True,
-        density_hidden_layer=1,
         density_n_neurons=64,
-        rgb_hidden_layer=2,
-        rgb_n_neurons=64,
+        rgb_n_neurons=32,
     ):
         super(NGPNetworks, self).__init__()
-        self.use_fully = use_fully
         self.cfg = get_cfg()
-        self.using_fp16 = self.cfg.fp16
         self.pos_encoder = HashEncoder()
         self.dir_encoder = SHEncoder()
 
-        if self.use_fully and jt.flags.cuda_archs[0] >= 75 and self.using_fp16:
-            assert self.pos_encoder.out_dim % 16 == 0
-            assert self.dir_encoder.out_dim % 16 == 0
-            self.density_mlp = FMLP([self.pos_encoder.out_dim, density_n_neurons, 16])
-            self.rgb_mlp = FMLP(
-                [self.dir_encoder.out_dim + 16, rgb_n_neurons, rgb_n_neurons, 3]
-            )
-        else:
-            if self.use_fully and not (jt.flags.cuda_archs[0] >= 75):
-                print(
-                    "Warning: Sm arch is lower than sm_75, FFMLPs is not supported. Automatically use original MLPs instead."
-                )
-            elif self.use_fully and not self.using_fp16:
-                print(
-                    "Warning: FFMLPs only support float16. Automatically use original MLPs instead."
-                )
-            self.density_mlp = nn.Sequential(
-                nn.Linear(self.pos_encoder.out_dim, density_n_neurons, bias=False),
-                nn.ReLU(),
-                nn.Linear(density_n_neurons, 16, bias=False),
-            )
-            self.rgb_mlp = nn.Sequential(
-                nn.Linear(self.dir_encoder.out_dim + 16, rgb_n_neurons, bias=False),
-                nn.ReLU(),
-                nn.Linear(rgb_n_neurons, rgb_n_neurons, bias=False),
-                nn.ReLU(),
-                nn.Linear(rgb_n_neurons, 3, bias=False),
-            )
+        assert self.pos_encoder.out_dim % 16 == 0
+        assert self.dir_encoder.out_dim % 16 == 0
+        self.density_mlp = FMLP([self.pos_encoder.out_dim, density_n_neurons, 16])
+        self.rgb_mlp = FMLP(
+            [self.dir_encoder.out_dim + 16, rgb_n_neurons, rgb_n_neurons, 3]
+        )
         self.set_fp16()
+        return
 
     def execute(self, pos_input, dir_input):
-        if self.using_fp16:
-            with jt.flag_scope(auto_mixed_precision_level=5):
-                return self.execute_(pos_input, dir_input)
-        else:
+        with jt.flag_scope(auto_mixed_precision_level=5):
             return self.execute_(pos_input, dir_input)
 
     def execute_(self, pos_input, dir_input):
@@ -75,8 +46,8 @@ class NGPNetworks(nn.Module):
         return density
 
     def set_fp16(self):
-        if self.using_fp16:
-            self.density_mlp.float16()
-            self.rgb_mlp.float16()
-            self.pos_encoder.float16()
-            self.dir_encoder.float16()
+        self.density_mlp.float16()
+        self.rgb_mlp.float16()
+        self.pos_encoder.float16()
+        self.dir_encoder.float16()
+        return True

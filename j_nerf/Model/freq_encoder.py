@@ -13,7 +13,6 @@ class FrequencyEncoder(nn.Module):
         periodic_fns=[jt.sin, jt.cos],
     ):
         self.cfg = get_cfg()
-        self.using_fp16 = self.cfg.fp16
         self.multires = multires
         self.include_input = include_input
         self.input_dims = input_dims
@@ -49,6 +48,5 @@ class FrequencyEncoder(nn.Module):
 
     def execute(self, x):
         res = jt.concat([fn(x) for fn in self.embed_fns], -1)
-        if self.using_fp16:
-            res = res.float16()
+        res = res.float16()
         return res

@@ -16,7 +16,6 @@ class CalcRgb(Function):
         n_rays_step=1024,
         padded_output_width=4,
         bg_color=[1, 1, 1],
-        using_fp16=False,
     ):
         self.density_grad_header = density_grad_header
         self.bg_color = bg_color
@@ -31,10 +30,7 @@ class CalcRgb(Function):
         self.ray_numstep_counter = jt.zeros([2], "int32")
         self.code_path = "../j-nerf/j_nerf/Cpp/density_grid_sampler/"
         self.rgb_options = copy.deepcopy(proj_options)
-        if using_fp16:
-            self.grad_type = "float16"
-        else:
-            self.grad_type = "float32"
+        self.grad_type = "float16"
 
     def execute(
         self,

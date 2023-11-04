@@ -7,15 +7,11 @@ from jittor import Function
 class SHEncoder(Function):
     def __init__(self):
         self.cfg = get_cfg()
-        using_fp16 = self.cfg.fp16
         self.num_elements = 4194304
         self.m_n_padded_output_dims = 16
         self.m_sh_degree = 4
         self.m_n_to_pad = 0
-        if using_fp16:
-            self.grad_type = "float16"
-        else:
-            self.grad_type = "float32"
+        self.grad_type = "float16"
         header_path = "../j-nerf/j_nerf/Cpp/sh_encoder/"
         proj_options[f"FLAGS: -I{header_path}"] = 1
         self.out_dim = self.m_n_padded_output_dims

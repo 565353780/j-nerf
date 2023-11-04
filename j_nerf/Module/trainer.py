@@ -4,7 +4,6 @@ import cv2
 import jittor as jt
 import numpy as np
 
-# jt.flags.gopt_disable=1
 jt.flags.use_cuda = 1
 
 from j_nerf.Dataset.nerf import NerfDataset
@@ -25,8 +24,7 @@ class Trainer:
     def __init__(self):
         self.cfg = get_cfg()
 
-        if not os.path.exists(self.cfg.log_dir):
-            os.makedirs(self.cfg.log_dir)
+        os.makedirs(self.cfg.log_dir, exist_ok=True)
 
         self.exp_name = self.cfg.exp_name
 
@@ -50,10 +48,8 @@ class Trainer:
         self.background_color = self.cfg.background_color
         self.tot_train_steps = self.cfg.tot_train_steps
         self.n_rays_per_batch = self.cfg.n_rays_per_batch
-        self.using_fp16 = self.cfg.fp16
         self.save_path = os.path.join(self.cfg.log_dir, self.exp_name)
-        if not os.path.exists(self.save_path):
-            os.makedirs(self.save_path)
+        os.makedirs(self.save_path, exist_ok=True)
         if self.cfg.ckpt_path and self.cfg.ckpt_path is not None:
             self.ckpt_path = self.cfg.ckpt_path
         else:
@@ -88,8 +84,7 @@ class Trainer:
             loss = self.loss_func(rgb, rgb_target)
             self.optimizer.step(loss)
             self.ema_optimizer.ema_step()
-            if self.using_fp16:
-                self.model.set_fp16()
+            self.model.set_fp16()
 
             if i > 0 and i % self.val_freq == 0:
                 psnr = mse2psnr(self.val_img(i))
@@ -107,8 +102,7 @@ class Trainer:
                 "ckpt file does not exist: " + self.ckpt_path
             )
             self.load_ckpt(self.ckpt_path)
-        if not os.path.exists(os.path.join(self.save_path, "test")):
-            os.makedirs(os.path.join(self.save_path, "test"))
+        os.makedirs(os.path.join(self.save_path, "test"), exist_ok=True)
         mse_list = self.render_test(save_path=os.path.join(self.save_path, "test"))
         if self.test_dataset.have_img:
             tot_psnr = 0
@@ -158,8 +152,7 @@ class Trainer:
         ckpt = jt.load(path)
         self.start = ckpt["global_step"]
         self.model.load_state_dict(ckpt["model"])
-        if self.using_fp16:
-            self.model.set_fp16()
+        self.model.set_fp16()
         self.sampler.load_state_dict(ckpt["sampler"])
         self.optimizer.load_state_dict(ckpt["optimizer"])
         nested = ckpt["nested_optimizer"]["defaults"]["param_groups"][0]

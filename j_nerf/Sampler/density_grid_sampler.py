@@ -29,7 +29,6 @@ class DensityGridSampler(nn.Module):
         # NERF const param
         self.n_rays_per_batch = self.cfg.n_rays_per_batch  # 4096
         self.cone_angle_constant = self.cfg.cone_angle_constant
-        self.using_fp16 = self.cfg.fp16
         self.near_distance = self.cfg.near_distance
         self.n_training_steps = self.cfg.n_training_steps
         self.target_batch_size = self.cfg.target_batch_size
@@ -147,7 +146,6 @@ class DensityGridSampler(nn.Module):
             splat_grid_samples_nerf_max_nearest_neighbor(
                 self.density_grad_header,
                 padded_output_width=self.density_mlp_padded_density_output_width,
-                using_fp16=self.using_fp16,
             )
         )
         self.ema_grid_samples_nerf = ema_grid_samples_nerf(
@@ -167,7 +165,6 @@ class DensityGridSampler(nn.Module):
             self.aabb_range,
             self.n_rays_per_batch,
             self.MAX_STEP,
-            self.using_fp16,
             self.target_batch_size,
         )
         self.calc_rgb = CalcRgb(
@@ -177,7 +174,6 @@ class DensityGridSampler(nn.Module):
             self.MAX_STEP,
             self.padded_output_width,
             self.background_color,
-            using_fp16=self.using_fp16,
         )
 
         self.measured_batch_size = jt.zeros([1], "int32")  ##rays batch sum
@@ -207,16 +203,7 @@ class DensityGridSampler(nn.Module):
             self._rays_numsteps = rays_numsteps.detach()
             return coords_pos, coords_dir
 
-        if self.using_fp16:
-            with jt.flag_scope(auto_mixed_precision_level=5):
-                nerf_outputs = self.model(coords_pos, coords_dir).detach()
-                (
-                    coords_compacted,
-                    rays_numsteps_compacted,
-                    compacted_numstep_counter,
-                ) = self.compacted_coords(nerf_outputs, coords, rays_numsteps)
-                self.measured_batch_size += compacted_numstep_counter
-        else:
+        with jt.flag_scope(auto_mixed_precision_level=5):
             nerf_outputs = self.model(coords_pos, coords_dir).detach()
             (
                 coords_compacted,
@@ -224,6 +211,7 @@ class DensityGridSampler(nn.Module):
                 compacted_numstep_counter,
             ) = self.compacted_coords(nerf_outputs, coords, rays_numsteps)
             self.measured_batch_size += compacted_numstep_counter
+
         if is_training:
             if self.cfg.m_training_step % self.update_den_freq == (
                 self.update_den_freq - 1
@@ -238,13 +226,10 @@ class DensityGridSampler(nn.Module):
     def rays2rgb(
         self, network_outputs, training_background_color=None, inference=False
     ):
-        if self.using_fp16:
-            with jt.flag_scope(auto_mixed_precision_level=5):
-                return self.rays2rgb_(
-                    network_outputs, training_background_color, inference
-                )
-        else:
-            return self.rays2rgb_(network_outputs, training_background_color, inference)
+        with jt.flag_scope(auto_mixed_precision_level=5):
+            return self.rays2rgb_(
+                network_outputs, training_background_color, inference
+            )
 
     def rays2rgb_(
         self, network_outputs, training_background_color=None, inference=False
@@ -330,12 +315,7 @@ class DensityGridSampler(nn.Module):
             bs = self.update_block_size
             res = []
             for i in range(0, self._density_grid_positions.shape[0], bs):
-                if self.using_fp16:
-                    with jt.flag_scope(auto_mixed_precision_level=5):
-                        res.append(
-                            self.model.density(self._density_grid_positions[i : i + bs])
-                        )
-                else:
+                with jt.flag_scope(auto_mixed_precision_level=5):
                     res.append(
                         self.model.density(self._density_grid_positions[i : i + bs])
                     )

@@ -25,7 +25,6 @@ class GridEncode(Function):
         log2_hashmap_size=19,
         n_rays_per_batch=4096,
         MAX_STEP=1024,
-        using_fp16=False,
     ):
         self.hash_func_header = hash_func_header
         desired_resolution = 2048.0
@@ -66,9 +65,7 @@ class GridEncode(Function):
         self.MAX_STEP = MAX_STEP
         self.num_elements = self.n_rays_per_batch * self.MAX_STEP
         self.m_positions = jt.empty([self.num_elements * n_pos_dims * 2], "float")
-        self.grad_type = "float32"
-        if using_fp16:
-            self.grad_type = "float16"
+        self.grad_type = "float16"
         self.m_encoded_positions = jt.empty(
             [self.num_elements * n_features * 2], self.grad_type
         )

@@ -14,5 +14,3 @@ target_batch_size = 1 << 18
 # Set const_dt=True for higher performance
 # Set const_dt=False for faster convergence
 const_dt = False
-# Use fp16 for faster training
-fp16 = True

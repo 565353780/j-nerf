@@ -6,13 +6,11 @@ jt.flags.use_cuda = 1
 
 
 class splat_grid_samples_nerf_max_nearest_neighbor(Function):
-    def __init__(self, density_grad_header, padded_output_width=16, using_fp16=False):
+    def __init__(self, density_grad_header, padded_output_width=16):
         self.density_grad_header = density_grad_header
         self.n_density_grid_samples = 0
         self.padded_output_width = padded_output_width
-        self.grad_type = "float32"
-        if using_fp16:
-            self.grad_type = "float16"
+        self.grad_type = "float16"
 
     def execute(
         self, density_grid_indices, mlp_out, density_grid_tmp, n_density_grid_samples

@@ -15,7 +15,6 @@ class HashEncoder(nn.Module):
         log2_hashmap_size=19,
     ):
         self.cfg = get_cfg()
-        using_fp16 = self.cfg.fp16
         aabb_scale = self.cfg.dataset_obj.aabb_scale
         self.hash_func = self.cfg.hash_func
         self.hash_func_header = f"""
@@ -24,22 +23,20 @@ class HashEncoder(nn.Module):
         self.encoder = GridEncode(
             self.hash_func_header,
             aabb_scale=aabb_scale,
-            n_pos_dims=3,
-            n_features_per_level=2,
-            n_levels=16,
-            base_resolution=16,
-            log2_hashmap_size=19,
-            using_fp16=using_fp16,
+            n_pos_dims=n_pos_dims,
+            n_features_per_level=n_features_per_level,
+            n_levels=n_levels,
+            base_resolution=base_resolution,
+            log2_hashmap_size=log2_hashmap_size,
         )
-        self.grad_type = "float32"
-        if using_fp16:
-            self.grad_type = "float16"
+        self.grad_type = "float16"
         self.m_grid = jt.init.uniform(
             [self.encoder.m_n_params], low=-1e-4, high=1e-4, dtype=self.grad_type
         )
         self.out_dim = n_features_per_level * n_levels
         header_path = "../j-nerf/j_nerf/Cpp/hash_encoder/"
         proj_options[f"FLAGS: -I{header_path}"] = 1
+        return
 
     def execute(self, x):
         assert self.m_grid.dtype == self.grad_type

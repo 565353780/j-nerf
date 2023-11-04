@@ -4,7 +4,7 @@ from j_nerf.Module.trainer import Trainer
 def demo():
     config_file = '../j-nerf/j_nerf/Config/ngp_fox.py'
     task = 'train'
-    save_dir = '../j-nerf/output/'
+    save_dir = '../j-nerf/output/demo.mp4'
     mcube_threshold = 0.0
 
     assert task in ['train', 'test', 'render', 'validate_mesh']
