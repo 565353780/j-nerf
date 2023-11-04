@@ -46,6 +46,7 @@ class FullyFusedMlp_weight(jt.Function):
         self.first_stride = weights[0].shape[0] * self.width
         self.output_activation = output_activation
         self.check_mid = check_mid
+        return
 
     def execute(self, a, con_weights):
         if a.shape[0] == 0:

@@ -11,7 +11,7 @@ class NGPNetworks(nn.Module):
     def __init__(
         self,
         density_n_neurons=64,
-        rgb_n_neurons=32,
+        rgb_n_neurons=64,
     ):
         super(NGPNetworks, self).__init__()
         self.cfg = get_cfg()
