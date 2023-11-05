@@ -18,7 +18,7 @@ class NGPNetworks(nn.Module):
         self.cfg = get_cfg()
 
         n_features_per_level = 2
-        feature_dim = 32
+        feature_dim = 16
 
         self.pos_encoder = HashEncoder(
             n_features_per_level=n_features_per_level, n_levels=feature_dim

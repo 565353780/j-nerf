@@ -2,6 +2,8 @@ import jittor as jt
 
 
 def checkError(data, data_name, is_exit=True):
+    if jt.__version__.split(".")[2] != 6:
+        return
     is_inf = jt.isinf(data)
     if True in is_inf:
         print("[ERROR][check_error::checkError]")
