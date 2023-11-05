@@ -11,12 +11,12 @@ from j_nerf.Method.error_check import checkError
 class NGPNetworks(nn.Module):
     def __init__(
         self,
-        density_n_neurons=64,
-        rgb_n_neurons=64,
     ):
         super(NGPNetworks, self).__init__()
         self.cfg = get_cfg()
 
+        density_n_neurons = 64
+        rgb_n_neurons = 64
         n_features_per_level = 2
         feature_dim = 16
 
