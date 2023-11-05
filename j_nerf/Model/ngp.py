@@ -5,6 +5,7 @@ from jittor import nn
 from j_nerf.Model.fmlp import FMLP
 from j_nerf.Model.hash_encoder import HashEncoder
 from j_nerf.Model.sh_encoder import SHEncoder
+from j_nerf.Method.error_check import checkError
 
 
 class NGPNetworks(nn.Module):
@@ -15,14 +16,31 @@ class NGPNetworks(nn.Module):
     ):
         super(NGPNetworks, self).__init__()
         self.cfg = get_cfg()
-        self.pos_encoder = HashEncoder()
+
+        n_features_per_level = 2
+        feature_dim = 32
+
+        self.pos_encoder = HashEncoder(
+            n_features_per_level=n_features_per_level, n_levels=feature_dim
+        )
         self.dir_encoder = SHEncoder()
 
         assert self.pos_encoder.out_dim % 16 == 0
         assert self.dir_encoder.out_dim % 16 == 0
-        self.density_mlp = FMLP([self.pos_encoder.out_dim, density_n_neurons, 16])
+        self.density_mlp = FMLP(
+            [
+                self.pos_encoder.out_dim,
+                density_n_neurons,
+                self.dir_encoder.out_dim,
+            ]
+        )
         self.rgb_mlp = FMLP(
-            [self.dir_encoder.out_dim + 16, rgb_n_neurons, rgb_n_neurons, 3]
+            [
+                self.dir_encoder.out_dim + self.density_mlp.output_shape1,
+                rgb_n_neurons,
+                rgb_n_neurons,
+                3,
+            ]
         )
         self.set_fp16()
         return
@@ -32,8 +50,15 @@ class NGPNetworks(nn.Module):
             return self.execute_(pos_input, dir_input)
 
     def execute_(self, pos_input, dir_input):
+        checkError(dir_input, "NGP.execute_.dir_input")
+        checkError(pos_input, "NGP.execute_.pos_input")
+
         dir_input = self.dir_encoder(dir_input)
+        checkError(dir_input, "NGP.execute_.dir_input encoded")
+
         pos_input = self.pos_encoder(pos_input)
+        checkError(pos_input, "NGP.execute_.pos_input encoded")
+
         density = self.density_mlp(pos_input)
         rgb = jt.concat([density, dir_input], -1)
         rgb = self.rgb_mlp(rgb)

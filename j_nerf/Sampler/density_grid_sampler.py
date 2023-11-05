@@ -81,7 +81,7 @@ class DensityGridSampler(nn.Module):
         self.density_grid_tmp = jt.zeros([self.density_n_elements], "float32")
         self._density_grid_indices = jt.zeros([self.density_n_elements], "int32")
 
-        self._mlp_out = jt.empty([1])
+        self._mlp_out = jt.zeros([1])
         self.size_including_mips = (
             self.NERF_GRIDSIZE
             * self.NERF_GRIDSIZE
@@ -93,7 +93,7 @@ class DensityGridSampler(nn.Module):
             self.NERF_GRIDSIZE * self.NERF_GRIDSIZE * self.NERF_GRIDSIZE
         )
         self.density_grid_bitfield = jt.zeros([self.size_including_mips], "uint8")
-        self._density_grid_positions = jt.empty([1])
+        self._density_grid_positions = jt.zeros([1])
         self.density_grid_mean = jt.zeros(
             [
                 self.div_round_up(
@@ -227,9 +227,7 @@ class DensityGridSampler(nn.Module):
         self, network_outputs, training_background_color=None, inference=False
     ):
         with jt.flag_scope(auto_mixed_precision_level=5):
-            return self.rays2rgb_(
-                network_outputs, training_background_color, inference
-            )
+            return self.rays2rgb_(network_outputs, training_background_color, inference)
 
     def rays2rgb_(
         self, network_outputs, training_background_color=None, inference=False
@@ -259,7 +257,7 @@ class DensityGridSampler(nn.Module):
 
     def enlarge(self, x: jt.Var, size: int):
         if x.shape[0] < size:
-            y = jt.empty([size], x.dtype)
+            y = jt.zeros([size], x.dtype)
             x.assign(y)
 
     def update_density_grid_nerf(

@@ -154,8 +154,8 @@ class CalcRgb(Function):
         # return
         # rgb_output n_rays_per_batch x 3
         self.n_rays_per_batch = rays_numsteps.shape[0]
-        rgb_output = jt.empty([self.n_rays_per_batch, 3], "float32")
-        alpha_output = jt.empty([self.n_rays_per_batch, 1], "float32")
+        rgb_output = jt.zeros([self.n_rays_per_batch, 3], "float32")
+        alpha_output = jt.zeros([self.n_rays_per_batch, 1], "float32")
         rgb_output, alpha_output = jt.code(
             inputs=[network_output, coords_in, rays_numsteps],
             outputs=[rgb_output, alpha_output],

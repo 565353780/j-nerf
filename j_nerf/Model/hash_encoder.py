@@ -3,6 +3,7 @@ from j_nerf.Method.config import get_cfg
 from j_nerf.Model.grid_encode import GridEncode
 from j_nerf.Method.global_vars import proj_options
 from jittor import nn
+from j_nerf.Method.error_check import checkError
 
 
 class HashEncoder(nn.Module):
@@ -10,7 +11,7 @@ class HashEncoder(nn.Module):
         self,
         n_pos_dims=3,
         n_features_per_level=2,
-        n_levels=16,
+        n_levels=32,
         base_resolution=16,
         log2_hashmap_size=19,
     ):
@@ -39,7 +40,10 @@ class HashEncoder(nn.Module):
         return
 
     def execute(self, x):
+        checkError(x, "HashEncoder.execute.x")
         assert self.m_grid.dtype == self.grad_type
         output = self.encoder(x, self.m_grid)
+        # print("hash.output.shape:", output.shape)
+        checkError(output, "HashEncoder.execute.output")
         assert output.dtype == self.grad_type
         return output

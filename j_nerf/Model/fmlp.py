@@ -1,7 +1,7 @@
 import jittor as jt
-import numpy as np
 from j_nerf.Model.fully_fused_mlp import FullyFusedMlp_weight
 from jittor import init, nn
+from j_nerf.Method.error_check import checkError
 
 
 class FMLP(nn.Module):
@@ -39,14 +39,12 @@ class FMLP(nn.Module):
         return
 
     def execute(self, x):
+        checkError(x, "FMLP.execute.x")
         if x.shape[0] == 0:
-            return jt.empty([0, self.output_shape1]).float16()
+            return jt.zeros([0, self.output_shape1]).float16()
         ret = self.func(x, self.con_weights)
-        if np.isnan(ret[0][0].detach().numpy()):
-            print("ERROR: nan happened!")
-            print("x --> ", x.shape, x[0][0])
-            print("ret --> ", ret.shape, ret[0][0])
-            exit()
+        checkError(ret, "FMLP.execute.ret")
+
         if self.output_shape1 != ret.shape[1]:
             ret = ret[:, : self.output_shape1]
         return ret

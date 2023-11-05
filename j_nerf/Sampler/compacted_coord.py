@@ -38,7 +38,7 @@ class CompactedCoord(Function):
         # rgb_output n_rays_per_batch x 3
         compacted_numstep_counter = jt.zeros([1], "int32")
         compacted_rays_counter = jt.zeros([1], "int32")
-        rays_numsteps_compacted = jt.empty(rays_numsteps.shape, "int32")
+        rays_numsteps_compacted = jt.zeros(rays_numsteps.shape, "int32")
         coords_out = jt.zeros([self.compacted_elements, 7], "float32")
         (
             coords_out,

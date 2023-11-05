@@ -15,6 +15,7 @@ class SHEncoder(Function):
         header_path = "../j-nerf/j_nerf/Cpp/sh_encoder/"
         proj_options[f"FLAGS: -I{header_path}"] = 1
         self.out_dim = self.m_n_padded_output_dims
+        return
 
     def execute(self, x):
         self.num_elements = x.shape[0]

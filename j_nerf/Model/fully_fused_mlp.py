@@ -50,10 +50,12 @@ class FullyFusedMlp_weight(jt.Function):
 
     def execute(self, a, con_weights):
         if a.shape[0] == 0:
-            return jt.empty([0]).float16()
+            return jt.zeros([0]).float16()
         self.shapes = []
         self.dtypes = []
-        assert a.shape[1] == self.weights[0].shape[0]
+        assert a.shape[1] == self.weights[0].shape[0], (
+            str(a.shape[1]) + " != " + str(self.weights[0].shape[0])
+        )
         self.output_intermediate = None
         cuda_src = f"""
         @alias(input, in0)

@@ -4,15 +4,15 @@ from math import ceil, exp, log, log2, pow
 import jittor as jt
 from j_nerf.Method.global_vars import proj_options
 from jittor import Function
+from j_nerf.Method.error_check import checkError
 
 jt.flags.use_cuda = 1
 
 
 class GridEncode(Function):
-    def div_round_up(self, val, divisor, type):
-        if type == int:
-            return int((val + divisor - 1) / divisor)
+    def div_round_up(self, val, divisor, type=int):
         assert type == int
+        return int((val + divisor - 1) / divisor)
 
     def __init__(
         self,
@@ -32,8 +32,8 @@ class GridEncode(Function):
             log(desired_resolution * aabb_scale / base_resolution) / (n_levels - 1)
         )
         n_features = n_features_per_level * n_levels
-        m_n_levels = self.div_round_up(n_features, n_features_per_level, int)
-        offsets_table_host = [0 for x in range(33)]
+        m_n_levels = self.div_round_up(n_features, n_features_per_level)
+        offsets_table_host = [0 for _ in range(m_n_levels + 1)]
         offset = 0
         for i in range(m_n_levels):
             scale = pow(2, (i * log2(m_per_level_scale))) * base_resolution - 1.0
@@ -46,7 +46,7 @@ class GridEncode(Function):
         offsets_table_host[m_n_levels] = offset
         m_n_params = offsets_table_host[m_n_levels] * n_features_per_level
         self.m_n_params = m_n_params
-        self.m_hashmap_offsets_table = jt.empty([n_levels + 1], "int32")
+        self.m_hashmap_offsets_table = jt.zeros([n_levels + 1], "int32")
         for i in range(m_n_levels + 1):
             self.m_hashmap_offsets_table[i] = offsets_table_host[i]
         self.N_POS_DIMS = n_pos_dims
@@ -64,21 +64,24 @@ class GridEncode(Function):
         self.n_rays_per_batch = n_rays_per_batch
         self.MAX_STEP = MAX_STEP
         self.num_elements = self.n_rays_per_batch * self.MAX_STEP
-        self.m_positions = jt.empty([self.num_elements * n_pos_dims * 2], "float")
+        self.m_positions = jt.zeros([self.num_elements * n_pos_dims * 2], "float")
         self.grad_type = "float16"
-        self.m_encoded_positions = jt.empty(
+        self.m_encoded_positions = jt.zeros(
             [self.num_elements * n_features * 2], self.grad_type
         )
-        self.m_grid_gradient = jt.empty([m_n_params], self.grad_type)
+        self.m_grid_gradient = jt.zeros([m_n_params], self.grad_type)
         self.m_stochastic_interpolation = 0
         header_path = os.path.join(os.path.dirname(__file__), "op_header")
         proj_options[f"FLAGS: -I{header_path}"] = 1
+        return
 
     def execute(self, x, m_grid):
+        checkError(x, "GridEncode.execute.x")
         self.num_elements = x.shape[0]
         assert m_grid.dtype == self.grad_type
         assert self.m_encoded_positions.dtype == self.grad_type
-        output = jt.empty([self.num_elements, 32], self.grad_type)
+        output = jt.zeros([self.num_elements, self.m_n_output_dims], self.grad_type)
+        checkError(output, "GridEncode.execute.output")
         output, self.m_positions, self.m_encoded_positions = jt.code(
             [self.m_hashmap_offsets_table, x, m_grid],
             [output, self.m_positions, self.m_encoded_positions],
@@ -139,6 +142,7 @@ class GridEncode(Function):
 """,
         )
         output.compile_options = proj_options
+        checkError(output, "GridEncode.execute.output return")
         self.m_positions = self.m_positions.detach()
         self.m_encoded_positions = self.m_encoded_positions.detach()
         return output

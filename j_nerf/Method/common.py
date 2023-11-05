@@ -4,7 +4,7 @@ import numpy as np
 
 def enlarge(x: jt.Var, size: int):
     if x.shape[0] < size:
-        y = jt.empty([size], x.dtype)
+        y = jt.zeros([size], x.dtype)
         x.assign(y)
 
 
