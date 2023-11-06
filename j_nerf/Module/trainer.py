@@ -28,8 +28,14 @@ class Trainer:
 
         self.exp_name = self.cfg.exp_name
 
-        self.train_dataset = NerfDataset('./data/fox', 4096, 'train')
-        self.test_dataset = NerfDataset('./data/fox', 4096, 'test', preload_shuffle=False)
+        dataset_folder_path = (
+            "/home/chli/github/NeRF/colmap-manage/output/NeRF_wine/jn/"
+        )
+
+        self.train_dataset = NerfDataset(dataset_folder_path, 4096, "train")
+        self.test_dataset = NerfDataset(
+            dataset_folder_path, 4096, "test", preload_shuffle=False
+        )
         self.cfg.dataset_obj = self.train_dataset
 
         self.model = NGPNetworks()
@@ -38,7 +44,9 @@ class Trainer:
         self.sampler = DensityGridSampler()
         self.cfg.sampler_obj = self.sampler
 
-        self.optimizer = Adam(lr=1e-1, eps=1e-15, betas=(0.9, 0.99), params=self.model.parameters())
+        self.optimizer = Adam(
+            lr=1e-1, eps=1e-15, betas=(0.9, 0.99), params=self.model.parameters()
+        )
         self.optimizer = ExpDecay(self.optimizer, 20000, 10000, 0.33)
 
         self.ema_optimizer = EMA(self.model.parameters(), 0.95)
@@ -213,7 +221,7 @@ class Trainer:
         im.save(path)
 
     def render_img(self, dataset_mode="train", img_id=None):
-        if dataset_mode == 'train':
+        if dataset_mode == "train":
             dataset = self.train_dataset
         else:
             dataset = self.test_dataset
@@ -226,7 +234,9 @@ class Trainer:
             img_ids = jt.zeros([H * W], "int32") + img_id
         else:
             img_ids = jt.zeros([H * W], "int32") + img_id
-        rays_o_total, rays_d_total, rays_pix_total = dataset.generate_rays_total_test(img_ids, W, H)
+        rays_o_total, rays_d_total, rays_pix_total = dataset.generate_rays_total_test(
+            img_ids, W, H
+        )
         rays_pix_total = rays_pix_total.unsqueeze(-1)
         pixel = 0
         imgs = np.empty([H * W + self.n_rays_per_batch, 3])
@@ -252,9 +262,7 @@ class Trainer:
             alphas[pixel:end] = alpha.numpy()
         imgs = imgs[: H * W].reshape(H, W, 3)
         alphas = alphas[: H * W].reshape(H, W, 1)
-        imgs_tar = jt.array(dataset.image_data[img_id]).reshape(
-            H, W, 4
-        )
+        imgs_tar = jt.array(dataset.image_data[img_id]).reshape(H, W, 4)
         imgs_tar = imgs_tar[..., :3] * imgs_tar[..., 3:] + jt.array(
             self.background_color
         ) * (1 - imgs_tar[..., 3:])
