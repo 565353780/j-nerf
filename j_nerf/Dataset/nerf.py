@@ -17,8 +17,8 @@ class NerfDataset:
     def __init__(
         self,
         root_dir,
-        batch_size,
         mode="train",
+        batch_size=4096,
         H=0,
         W=0,
         correct_pose=[1, -1, -1],
@@ -62,6 +62,7 @@ class NerfDataset:
         jt.gc()
         self.image_data = self.image_data.reshape(self.n_images, -1, 4).detach()
         # breakpoint()
+        return
 
     def __next__(self):
         if self.idx_now + self.batch_size >= self.shuffle_index.shape[0]:

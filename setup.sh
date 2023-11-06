@@ -5,5 +5,6 @@ cd colmap-manage
 ./setup.sh
 
 pip install numpy tqdm opencv-python Pillow imageio \
-	pyyaml PyMCubes trimesh plyfile open3d
+	pyyaml PyMCubes trimesh plyfile open3d tensorboardX \
+	tensorboard
 pip install jittor==1.3.6.15

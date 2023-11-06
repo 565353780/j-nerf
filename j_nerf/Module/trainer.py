@@ -12,6 +12,7 @@ from j_nerf.Loss.huber import HuberLoss
 from j_nerf.Loss.mse import img2mse, mse2psnr
 from j_nerf.Method.camera_path import path_spherical
 from j_nerf.Method.config import get_cfg
+from j_nerf.Method.time import getCurrentTime
 from j_nerf.Model.ngp import NGPNetworks
 from j_nerf.Optim.adam import Adam
 from j_nerf.Optim.ema import EMA
@@ -19,6 +20,7 @@ from j_nerf.Optim.expdecay import ExpDecay
 from j_nerf.Sampler.density_grid_sampler import DensityGridSampler
 from PIL import Image
 from tqdm import tqdm
+from tensorboardX import SummaryWriter
 
 
 class Trainer:
@@ -30,7 +32,7 @@ class Trainer:
         self.cfg = get_cfg()
         self.cfg.name = exp_name
         self.cfg.exp_name = exp_name
-        self.cfg.tot_train_steps = 4000
+        self.cfg.tot_train_steps = 400000
         self.cfg.background_color = [0, 0, 0]
         self.cfg.near_distance = 0.2
         self.cfg.n_rays_per_batch = 4096
@@ -42,16 +44,16 @@ class Trainer:
         self.cfg.work_dir = "work_dir/" + exp_name
         self.cfg.hash_func = HASH_FUNC
         self.cfg.cone_angle_constant = CONE_ANGLE_CONSTANT
-        self.cfg.log_dir = "./logs"
+        self.cfg.log_dir = "./output"
 
         os.makedirs(self.cfg.log_dir, exist_ok=True)
 
         self.exp_name = self.cfg.exp_name
 
-        self.train_dataset = NerfDataset(dataset_folder_path, 4096, "train")
+        self.train_dataset = NerfDataset(dataset_folder_path, "train")
         self.test_dataset = self.train_dataset
         # self.test_dataset = NerfDataset(
-        #    dataset_folder_path, 4096, "test", preload_shuffle=False
+        #    dataset_folder_path, "test", preload_shuffle=False
         # )
         self.cfg.dataset_obj = self.train_dataset
 
@@ -90,6 +92,9 @@ class Trainer:
         self.image_resolutions = self.train_dataset.resolution
         self.W = self.image_resolutions[0]
         self.H = self.image_resolutions[1]
+
+        self.log_folder_name = getCurrentTime()
+        self.summary_writer = SummaryWriter("./logs/" + self.log_folder_name + "/")
         return
 
     def train(self):
@@ -114,12 +119,14 @@ class Trainer:
             self.model.set_fp16()
 
             if i > 0 and i % self.val_freq == 0:
-                psnr = mse2psnr(self.val_img(i))
+                psnr = mse2psnr(self.val_img(i)).detach().numpy()[0]
                 print(
                     "STEP={} | LOSS={} | VAL PSNR={}".format(
                         i, loss.mean().item(), psnr
                     )
                 )
+                self.summary_writer.add_scalar("Train/loss", loss.mean().item(), i)
+                self.summary_writer.add_scalar("Train/psnr", psnr, i)
         self.save_ckpt(os.path.join(self.save_path, "params.pkl"))
         self.test()
 
