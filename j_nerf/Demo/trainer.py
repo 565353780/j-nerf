@@ -1,17 +1,17 @@
-from j_nerf.Method.config import init_cfg
 from j_nerf.Module.trainer import Trainer
 
+
 def demo():
-    config_file = '../j-nerf/j_nerf/Config/ngp_fox.py'
-    task = 'train'
-    save_dir = '../j-nerf/output/demo.mp4'
+    exp_name = "NeRF_wine"
+    dataset_folder_path = "../colmap-manage/output/" + exp_name + "/jn/"
+
+    task = "train"
+    save_dir = "../j-nerf/output/demo.mp4"
     mcube_threshold = 0.0
 
-    assert task in ['train', 'test', 'render', 'validate_mesh']
+    assert task in ["train", "test", "render", "validate_mesh"]
 
-    init_cfg(config_file)
-
-    trainer = Trainer()
+    trainer = Trainer(exp_name, dataset_folder_path)
 
     if task == "train":
         trainer.train()

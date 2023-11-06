@@ -6,6 +6,7 @@ import numpy as np
 
 jt.flags.use_cuda = 1
 
+from j_nerf.Config.hash import CONE_ANGLE_CONSTANT, HASH_FUNC
 from j_nerf.Dataset.nerf import NerfDataset
 from j_nerf.Loss.huber import HuberLoss
 from j_nerf.Loss.mse import img2mse, mse2psnr
@@ -21,16 +22,31 @@ from tqdm import tqdm
 
 
 class Trainer:
-    def __init__(self):
+    def __init__(
+        self,
+        exp_name,
+        dataset_folder_path,
+    ):
         self.cfg = get_cfg()
+        self.cfg.name = exp_name
+        self.cfg.exp_name = exp_name
+        self.cfg.tot_train_steps = 4000
+        self.cfg.background_color = [0, 0, 0]
+        self.cfg.near_distance = 0.2
+        self.cfg.n_rays_per_batch = 4096
+        self.cfg.n_training_steps = 16
+        # Expected number of sampling points per batch
+        self.cfg.target_batch_size = 1 << 18
+        # True: higher performance False: faster convergence
+        self.cfg.const_dt = False
+        self.cfg.work_dir = "work_dir/" + exp_name
+        self.cfg.hash_func = HASH_FUNC
+        self.cfg.cone_angle_constant = CONE_ANGLE_CONSTANT
+        self.cfg.log_dir = "./logs"
 
         os.makedirs(self.cfg.log_dir, exist_ok=True)
 
         self.exp_name = self.cfg.exp_name
-
-        dataset_folder_path = (
-            "/home/chli/github/NeRF/colmap-manage/output/NeRF_wine/jn/"
-        )
 
         self.train_dataset = NerfDataset(dataset_folder_path, 4096, "train")
         self.test_dataset = NerfDataset(

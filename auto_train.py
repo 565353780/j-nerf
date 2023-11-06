@@ -5,7 +5,6 @@ sys.path.append("../colmap-manage/")
 
 from colmap_manage.Module.colmap_manager import COLMAPManager
 from colmap_manage.Module.dataset_manager import DatasetManager
-from j_nerf.Method.config import init_cfg
 from j_nerf.Module.trainer import Trainer
 
 data_folder_name = "NeRF/wine"
@@ -34,8 +33,4 @@ COLMAPManager(
 DatasetManager().generateDataset(
     "jn", data_folder_path, dataset_folder_path, method_dict
 )
-
-config_file = "../j-nerf/j_nerf/Config/ngp_fox.py"
-init_cfg(config_file)
-
-Trainer().train()
+Trainer(data_folder_name.replace("/", "_"), dataset_folder_path).train()
