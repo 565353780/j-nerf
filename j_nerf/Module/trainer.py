@@ -3,9 +3,6 @@ import os
 import cv2
 import jittor as jt
 import numpy as np
-
-jt.flags.use_cuda = 1
-
 from j_nerf.Config.hash import CONE_ANGLE_CONSTANT, HASH_FUNC
 from j_nerf.Dataset.nerf import NerfDataset
 from j_nerf.Loss.huber import HuberLoss
@@ -19,8 +16,10 @@ from j_nerf.Optim.ema import EMA
 from j_nerf.Optim.expdecay import ExpDecay
 from j_nerf.Sampler.density_grid_sampler import DensityGridSampler
 from PIL import Image
-from tqdm import tqdm
 from tensorboardX import SummaryWriter
+from tqdm import tqdm
+
+jt.flags.use_cuda = 1
 
 
 class Trainer:
@@ -29,9 +28,12 @@ class Trainer:
         exp_name,
         dataset_folder_path,
     ):
+        self.val_freq = 1000
+        self.exp_name = exp_name
+
         self.cfg = get_cfg()
-        self.cfg.name = exp_name
-        self.cfg.exp_name = exp_name
+        self.cfg.name = self.exp_name
+        self.cfg.exp_name = self.exp_name
         self.cfg.tot_train_steps = 400000
         self.cfg.background_color = [0, 0, 0]
         self.cfg.near_distance = 0.2
@@ -41,14 +43,12 @@ class Trainer:
         self.cfg.target_batch_size = 1 << 18
         # True: higher performance False: faster convergence
         self.cfg.const_dt = False
-        self.cfg.work_dir = "work_dir/" + exp_name
+        self.cfg.work_dir = "work_dir/" + self.exp_name
         self.cfg.hash_func = HASH_FUNC
         self.cfg.cone_angle_constant = CONE_ANGLE_CONSTANT
         self.cfg.log_dir = "./output"
 
         os.makedirs(self.cfg.log_dir, exist_ok=True)
-
-        self.exp_name = self.cfg.exp_name
 
         self.train_dataset = NerfDataset(dataset_folder_path, "train")
         self.test_dataset = self.train_dataset
@@ -88,7 +88,6 @@ class Trainer:
         self.alpha_image = self.cfg.alpha_image
 
         self.cfg.m_training_step = 0
-        self.val_freq = 1000
         self.image_resolutions = self.train_dataset.resolution
         self.W = self.image_resolutions[0]
         self.H = self.image_resolutions[1]
