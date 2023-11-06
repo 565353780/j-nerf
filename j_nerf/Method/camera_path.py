@@ -5,7 +5,7 @@ import numpy as np
 def pose_spherical(theta, phi, radius):
     trans_t = lambda t: jt.array(
         np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, t], [0, 0, 0, 1]]).astype(
-            np.float32
+            np.float16
         )
     )
     rot_phi = lambda phi: jt.array(
@@ -16,7 +16,7 @@ def pose_spherical(theta, phi, radius):
                 [0, np.sin(phi), np.cos(phi), 0],
                 [0, 0, 0, 1],
             ]
-        ).astype(np.float32)
+        ).astype(np.float16)
     )
     rot_theta = lambda th: jt.array(
         np.array(
@@ -26,7 +26,7 @@ def pose_spherical(theta, phi, radius):
                 [np.sin(th), 0, np.cos(th), 0],
                 [0, 0, 0, 1],
             ]
-        ).astype(np.float32)
+        ).astype(np.float16)
     )
     c2w = trans_t(radius)
     c2w = rot_phi(phi / 180.0 * np.pi) @ c2w

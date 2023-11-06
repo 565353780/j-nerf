@@ -26,7 +26,7 @@ def write_image_imageio(img_file, img, quality):
 
 def read_image_imageio(img_file):
     img = imageio.imread(img_file)
-    img = np.asarray(img).astype(np.float32)
+    img = np.asarray(img).astype(np.float16)
     if len(img.shape) == 2:
         img = img[:, :, np.newaxis]
     return img / 255.0
@@ -59,7 +59,7 @@ def read_image(file):
             h, w = struct.unpack("ii", bytes[:8])
             img = (
                 np.frombuffer(bytes, dtype=np.float16, count=h * w * 4, offset=8)
-                .astype(np.float32)
+                .astype(np.float16)
                 .reshape([h, w, 4])
             )
     else:
