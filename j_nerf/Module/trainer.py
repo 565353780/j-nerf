@@ -49,9 +49,10 @@ class Trainer:
         self.exp_name = self.cfg.exp_name
 
         self.train_dataset = NerfDataset(dataset_folder_path, 4096, "train")
-        self.test_dataset = NerfDataset(
-            dataset_folder_path, 4096, "test", preload_shuffle=False
-        )
+        self.test_dataset = self.train_dataset
+        # self.test_dataset = NerfDataset(
+        #    dataset_folder_path, 4096, "test", preload_shuffle=False
+        # )
         self.cfg.dataset_obj = self.train_dataset
 
         self.model = NGPNetworks()
@@ -89,11 +90,13 @@ class Trainer:
         self.image_resolutions = self.train_dataset.resolution
         self.W = self.image_resolutions[0]
         self.H = self.image_resolutions[1]
+        return
 
     def train(self):
         for i in tqdm(range(self.start, self.tot_train_steps)):
             self.cfg.m_training_step = i
             img_ids, rays_o, rays_d, rgb_target = next(self.train_dataset)
+
             training_background_color = jt.random([rgb_target.shape[0], 3]).stop_grad()
 
             rgb_target = (
@@ -135,14 +138,19 @@ class Trainer:
             print("TOTAL TEST PSNR===={}".format(tot_psnr / len(mse_list)))
 
     def render(self, load_ckpt=True, save_path=None):
+        if save_path is not None:
+            os.makedirs(save_path, exist_ok=True)
+
         if load_ckpt:
             assert os.path.exists(self.ckpt_path), (
                 "ckpt file does not exist: " + self.ckpt_path
             )
             self.load_ckpt(self.ckpt_path)
+
         if save_path is None or save_path == "":
             save_path = os.path.join(self.save_path, "demo.mp4")
         else:
+            save_path += "render.mp4"
             assert save_path.endswith(".mp4"), "suffix of save_path need to be .mp4"
         print("rendering video with specified camera path")
         fps = 28
@@ -176,7 +184,6 @@ class Trainer:
         ckpt = jt.load(path)
         self.start = ckpt["global_step"]
         self.model.load_state_dict(ckpt["model"])
-        self.model.set_fp16()
         self.sampler.load_state_dict(ckpt["sampler"])
         self.optimizer.load_state_dict(ckpt["optimizer"])
         nested = ckpt["nested_optimizer"]["defaults"]["param_groups"][0]

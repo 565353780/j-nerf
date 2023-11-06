@@ -41,7 +41,11 @@ class HashEncoder(nn.Module):
 
     def execute(self, x):
         checkError(x, "HashEncoder.execute.x")
-        assert self.m_grid.dtype == self.grad_type
+        assert self.m_grid.dtype == self.grad_type, (
+            self.m_grid.dtype,
+            "!=",
+            self.grad_type,
+        )
         output = self.encoder(x, self.m_grid)
         # print("hash.output.shape:", output.shape)
         checkError(output, "HashEncoder.execute.output")

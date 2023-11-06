@@ -9,8 +9,9 @@ from j_nerf.Module.trainer import Trainer
 from j_nerf.Method.config import init_cfg
 from tqdm import tqdm
 
+
 def extract_mesh():
-    config_file = '../j-nerf/j_nerf/Config/ngp_fox.py'
+    config_file = "../j-nerf/j_nerf/Config/ngp_fox.py"
     resolution = 512
     mcube_smooth = False
 
@@ -26,13 +27,13 @@ def extract_mesh():
         "--resolution",
         type=int,
         default=resolution,
-        help="resolution of space division"
+        help="resolution of space division",
     )
     parser.add_argument(
         "--mcube_smooth",
         type=bool,
         default=mcube_smooth,
-        help="use pymcube.smooth function"
+        help="use pymcube.smooth function",
     )
     args = parser.parse_args()
     print(args)
@@ -46,16 +47,16 @@ def extract_mesh():
     xmin, xmax = 0, 1
     ymin, ymax = 0, 1
     zmin, zmax = 0, 1
-    xyz_chunk = 512*512*512
-    step = max(min(xyz_chunk//(N*N),N),1)
-    assert N%step==0
-    rgbsigmas=[]
+    xyz_chunk = 512 * 512 * 512
+    step = max(min(xyz_chunk // (N * N), N), 1)
+    assert N % step == 0
+    rgbsigmas = []
     y = jt.linspace(ymin, ymax, N)
     z = jt.linspace(zmin, zmax, N)
-    for k in range(0,N,step):
-        rg = (xmax-xmin)/(N-1)
-        start = xmin+rg*k
-        end = xmin+rg*(k+step-1)
+    for k in range(0, N, step):
+        rg = (xmax - xmin) / (N - 1)
+        start = xmin + rg * k
+        end = xmin + rg * (k + step - 1)
         x = jt.linspace(start, end, step)
         xyz = jt.stack(jt.meshgrid(x, y, z), -1).reshape(-1, 3)
         xyz_ = xyz
@@ -63,17 +64,17 @@ def extract_mesh():
         with jt.no_grad():
             B = xyz_.shape[0]
             out_chunks = []
-            for i in range(0, B, trainer.n_rays_per_batch*128):
-                pos=xyz_[i:i + trainer.n_rays_per_batch*128]
-                dir=dir_[i:i + trainer.n_rays_per_batch*128]
-                out_chunks += [trainer.model(pos, dir)[:,-1]]
+            for i in range(0, B, trainer.n_rays_per_batch * 128):
+                pos = xyz_[i : i + trainer.n_rays_per_batch * 128]
+                dir = dir_[i : i + trainer.n_rays_per_batch * 128]
+                out_chunks += [trainer.model(pos, dir)[:, -1]]
             jt.sync_all(True)
-            out_chunks = jt.concat(out_chunks,0)
-            sigma0 = jt.maximum(out_chunks,0).int()
+            out_chunks = jt.concat(out_chunks, 0)
+            sigma0 = jt.maximum(out_chunks, 0).int()
             rgbsigmas.append(sigma0.numpy())
             jt.sync_all(True)
             jt.gc()
-    sigma = np.concatenate(rgbsigmas,0)
+    sigma = np.concatenate(rgbsigmas, 0)
     sigma = sigma.reshape(N, N, N)
     if args.mcube_smooth:
         sigma = mcubes.smooth(sigma)
@@ -81,17 +82,21 @@ def extract_mesh():
     else:
         vertices, triangles = mcubes.marching_cubes(sigma, 0.5)
 
-    vertices_ = (vertices/N).astype(np.float32)
+    vertices_ = (vertices / N).astype(np.float16)
     x_ = (ymax - ymin) * vertices_[:, 1] + ymin
     y_ = (xmax - xmin) * vertices_[:, 0] + xmin
     vertices_[:, 0] = x_
     vertices_[:, 1] = y_
     vertices_[:, 2] = (zmax - zmin) * vertices_[:, 2] + zmin
-    vertices_.dtype = [('x', 'f4'), ('y', 'f4'), ('z', 'f4')]
-    face = np.empty(len(triangles), dtype=[('vertex_indices', 'i4', (3,))])
-    face['vertex_indices'] = triangles
-    PlyData([PlyElement.describe(vertices_[:, 0], 'vertex'),
-             PlyElement.describe(face, 'face')]).write(os.path.join(mesh_dir, f'{"mesh-origin"}.ply'))
+    vertices_.dtype = [("x", "f4"), ("y", "f4"), ("z", "f4")]
+    face = np.empty(len(triangles), dtype=[("vertex_indices", "i4", (3,))])
+    face["vertex_indices"] = triangles
+    PlyData(
+        [
+            PlyElement.describe(vertices_[:, 0], "vertex"),
+            PlyElement.describe(face, "face"),
+        ]
+    ).write(os.path.join(mesh_dir, f'{"mesh-origin"}.ply'))
     print("mesh origin generated mesh-origin.ply")
     mesh = o3d.io.read_triangle_mesh(os.path.join(mesh_dir, f'{"mesh-origin"}.ply'))
     idxs, count, _ = mesh.cluster_connected_triangles()
@@ -99,14 +104,14 @@ def extract_mesh():
     triangles_to_remove = [i for i in range(len(face)) if idxs[i] != max_cluster_idx]
     mesh.remove_triangles_by_index(triangles_to_remove)
     mesh.remove_unreferenced_vertices()
-    face = np.empty(len(mesh.triangles), dtype=[('vertex_indices', 'i4', (3,))])
-    face['vertex_indices'] = mesh.triangles
-    vertices_ = np.asarray(mesh.vertices).astype(np.float32)
-    vertices_.dtype = [('x', 'f4'), ('y', 'f4'), ('z', 'f4')]
-    # PlyData([PlyElement.describe(vertices_[:, 0], 'vertex'), 
+    face = np.empty(len(mesh.triangles), dtype=[("vertex_indices", "i4", (3,))])
+    face["vertex_indices"] = mesh.triangles
+    vertices_ = np.asarray(mesh.vertices).astype(np.float16)
+    vertices_.dtype = [("x", "f4"), ("y", "f4"), ("z", "f4")]
+    # PlyData([PlyElement.describe(vertices_[:, 0], 'vertex'),
     #         PlyElement.describe(face, 'face')]).write(os.path.join(mesh_dir, f'{"mesh-denoise"}.ply'))
     # print("mesh denoise generated mesh-denoise.ply")
-    vertices_ = np.asarray(mesh.vertices).astype(np.float32)
+    vertices_ = np.asarray(mesh.vertices).astype(np.float16)
     mesh.compute_vertex_normals()
     dir_ = np.asarray(mesh.vertex_normals)
 
@@ -123,11 +128,11 @@ def extract_mesh():
     dir_ = jt.array(dir_)
     vertices_ = jt.array(vertices_)
     rays_o_total = vertices_ - dir_ * 0.2
-    rays_o_total = (rays_o_total-0.5)*aabb_scale+0.5
+    rays_o_total = (rays_o_total - 0.5) * aabb_scale + 0.5
     W, H = trainer.image_resolutions
     W = int(W)
     H = int(H)
-    fake_img_ids = jt.zeros([H*W], 'int32')
+    fake_img_ids = jt.zeros([H * W], "int32")
     N_vertices = len(vertices_)
     img = []
     alpha = []
@@ -144,18 +149,19 @@ def extract_mesh():
             jt.gc()
     img = np.concatenate(img, 0)
     alpha = np.concatenate(alpha, 0)
-    img = img + np.array(trainer.background_color)*(1 - alpha)
-    img = (img*255+0.5).clip(0, 255).astype('uint8')
-    img.dtype = [('red', 'u1'), ('green', 'u1'), ('blue', 'u1')]
+    img = img + np.array(trainer.background_color) * (1 - alpha)
+    img = (img * 255 + 0.5).clip(0, 255).astype("uint8")
+    img.dtype = [("red", "u1"), ("green", "u1"), ("blue", "u1")]
     vertices_ = np.asarray(vertices_)
-    vertices_.dtype = [('x', 'f4'), ('y', 'f4'), ('z', 'f4')]
-    vertex_all = np.empty(N_vertices, vertices_.dtype.descr+img.dtype.descr)
+    vertices_.dtype = [("x", "f4"), ("y", "f4"), ("z", "f4")]
+    vertex_all = np.empty(N_vertices, vertices_.dtype.descr + img.dtype.descr)
     for prop in vertices_.dtype.names:
         vertex_all[prop] = vertices_[prop][:, 0]
     for prop in img.dtype.names:
         vertex_all[prop] = img[prop][:, 0]
-    face = np.empty(len(mesh.triangles), dtype=[('vertex_indices', 'i4', (3,))])
-    face['vertex_indices'] = mesh.triangles
-    PlyData([PlyElement.describe(vertex_all, 'vertex'),
-             PlyElement.describe(face, 'face')]).write(os.path.join(mesh_dir, f'{"mesh-color"}.ply'))
+    face = np.empty(len(mesh.triangles), dtype=[("vertex_indices", "i4", (3,))])
+    face["vertex_indices"] = mesh.triangles
+    PlyData(
+        [PlyElement.describe(vertex_all, "vertex"), PlyElement.describe(face, "face")]
+    ).write(os.path.join(mesh_dir, f'{"mesh-color"}.ply'))
     print("mesh color generated mesh-color.ply")

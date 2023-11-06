@@ -18,9 +18,7 @@ data_folder_path = "/home/chli/Dataset/" + data_folder_name + "/"
 dataset_folder_path = (
     "../colmap-manage/output/" + data_folder_name.replace("/", "_") + "/"
 )
-output_folder_path = (
-    "../j-nerf/output/" + data_folder_name.replace("/", "_") + "/render.mp4"
-)
+output_folder_path = "../j-nerf/output/" + data_folder_name.replace("/", "_") + "/"
 
 Trainer(data_folder_name.replace("/", "_"), dataset_folder_path).render(
     True, output_folder_path
